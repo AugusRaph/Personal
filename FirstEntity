@@ -1,0 +1,23 @@
+public class FirstEntity : IPrimaryKey<string>
+{
+    public string Id { get; set; }
+    public string PartitionKey { get; set; }
+
+    // Names as they appear in the database
+    public string IdName => "FirstEntityId";
+    public string PartitionKeyName => "FirstEntityPartition";
+
+    // Additional properties specific to FirstEntity
+}
+
+public class SecondEntity : IPrimaryKey<int>
+{
+    public int Id { get; set; }
+    public int PartitionKey { get; set; }
+
+    // Names as they appear in the database
+    public string IdName => "SecondEntityId";
+    public string PartitionKeyName => "SecondEntityPartition";
+
+    // Additional properties specific to SecondEntity
+}
