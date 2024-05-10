@@ -1,0 +1,30 @@
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the DI container.
+var services = builder.Services;
+var configuration = builder.Configuration;
+
+// Register the CosmosClient as a singleton
+services.AddSingleton<CosmosClient>(serviceProvider =>
+{
+    string connectionString = configuration["CosmosDb:ConnectionString"];
+    return new CosmosClient(connectionString);
+});
+
+// Register your generic repositories
+services.AddScoped(typeof(IRepository<FirstEntity, string>), serviceProvider =>
+{
+    var client = serviceProvider.GetRequiredService<CosmosClient>();
+    return new Repository<FirstEntity, string>(client, "YourDatabaseName", "FirstEntityContainer");
+});
+
+services.AddScoped(typeof(IRepository<SecondEntity, int>), serviceProvider =>
+{
+    var client = serviceProvider.GetRequiredService<CosmosClient>();
+    return new Repository<SecondEntity, int>(client, "YourDatabaseName", "SecondEntityContainer");
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline and endpoints
+app.Run();
