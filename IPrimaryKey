@@ -1,0 +1,7 @@
+public interface IPrimaryKey<TKey>
+{
+    TKey Id { get; }
+    string IdName { get; }  // New property for Id field name
+    TKey PartitionKey { get; }
+    string PartitionKeyName { get; }  // New property for PartitionKey field name
+}
