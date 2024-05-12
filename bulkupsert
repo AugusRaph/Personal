@@ -1,0 +1,46 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Azure.Cosmos;
+using System.Linq;
+
+public class CosmosRepository<T, TKey> : ICosmosRepository<T, TKey>
+{
+    private readonly Container _container;
+    private readonly Func<TKey, PartitionKey> _partitionKeyConverter;
+
+    public CosmosRepository(CosmosClient cosmosClient, string databaseName, string containerName, Func<TKey, PartitionKey> partitionKeyConverter)
+    {
+        _container = cosmosClient.GetContainer(databaseName, containerName);
+        _partitionKeyConverter = partitionKeyConverter;
+    }
+
+    public async Task BulkUpsertAsync(IEnumerable<(T Item, TKey PartitionKey)> items)
+    {
+        var tasks = new List<Task>();
+        var groupedByPartitionKey = items.GroupBy(i => _partitionKeyConverter(i.PartitionKey));
+
+        foreach (var group in groupedByPartitionKey)
+        {
+            TransactionalBatch batch = _container.CreateTransactionalBatch(group.Key);
+            foreach (var item in group)
+            {
+                batch.UpsertItem(item.Item);
+            }
+            tasks.Add(ExecuteBatchAsync(batch));
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task ExecuteBatchAsync(TransactionalBatch batch)
+    {
+        TransactionalBatchResponse response = await batch.ExecuteAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            // Log or handle failure
+            Console.WriteLine("Batch operation failed with status: " + response.StatusCode);
+            // Optionally, throw an exception or handle the failure according to your application needs
+        }
+    }
+}
