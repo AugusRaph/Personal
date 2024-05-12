@@ -1,0 +1,56 @@
+public class Startup
+{
+    public IConfiguration Configuration { get; }
+
+    public Startup(IConfiguration configuration)
+    {
+        Configuration = configuration;
+    }
+
+    public void ConfigureServices(IServiceCollection services)
+    {
+        // Add services to the container.
+        services.AddControllers();
+        
+        // Register CosmosClient as a singleton
+        services.AddSingleton<CosmosClient>(serviceProvider =>
+        {
+            var cosmosDbConfig = Configuration.GetSection("CosmosDb");
+            return new CosmosClient(cosmosDbConfig["Account"], cosmosDbConfig["Key"]);
+        });
+
+        // Register CosmosDbRepository as a scoped or singleton based on your usage
+        services.AddScoped(typeof(IRepository<,>), typeof(CosmosDbRepository<,>));
+
+        // If your partition keys are strongly typed, you might need custom registration logic
+        // For example, if using string and DateTime keys
+        services.AddScoped<IRepository<MyItem, string>>(sp =>
+            new CosmosDbRepository<MyItem, string>(
+                sp.GetRequiredService<CosmosClient>(),
+                Configuration["CosmosDb:DatabaseName"],
+                Configuration["CosmosDb:ContainerName"],
+                key => new PartitionKey(key)));
+
+        services.AddScoped<IRepository<MyItem, DateTime>>(sp =>
+            new CosmosDbRepository<MyItem, DateTime>(
+                sp.GetRequiredService<CosmosClient>(),
+                Configuration["CosmosDb:DatabaseName"],
+                Configuration["CosmosDb:ContainerName"],
+                key => new PartitionKey(key.ToString("o"))));
+    }
+
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+        }
+
+        app.UseRouting();
+        app.UseAuthorization();
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+        });
+    }
+}
