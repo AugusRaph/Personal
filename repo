@@ -1,0 +1,63 @@
+using Azure.Cosmos;
+using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+
+public class CosmosDbRepository<T, TKey> : IRepository<T, TKey>
+{
+    private CosmosContainer _container;
+
+    public CosmosDbRepository(CosmosClient cosmosClient, string databaseName, string containerName)
+    {
+        _container = cosmosClient.GetContainer(databaseName, containerName);
+    }
+
+    public async Task<string> AddAsync(T item, TKey partitionKey)
+    {
+        var response = await _container.CreateItemAsync(item, new PartitionKey(partitionKey));
+        return response.Value.Id;
+    }
+
+    public async Task<T> GetByIdAsync(string id, TKey partitionKey)
+    {
+        try
+        {
+            ItemResponse<T> response = await _container.ReadItemAsync<T>(id, new PartitionKey(partitionKey));
+            return response.Value;
+        }
+        catch (CosmosException ex) when (ex.Status == 404)
+        {
+            return default;
+        }
+    }
+
+    public async Task<IEnumerable<T>> GetAsync(Expression<Func<T, bool>> predicate, TKey partitionKey)
+    {
+        var query = _container.GetItemLinqQueryable<T>(requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(partitionKey) })
+                             .Where(predicate)
+                             .AsQueryable();
+
+        List<T> results = new List<T>();
+        using (FeedIterator<T> resultSet = query.ToFeedIterator())
+        {
+            while (resultSet.HasMoreResults)
+            {
+                FeedResponse<T> response = await resultSet.ReadNextAsync();
+                results.AddRange(response);
+            }
+        }
+
+        return results;
+    }
+
+    public async Task UpdateAsync(string id, T item, TKey partitionKey)
+    {
+        await _container.ReplaceItemAsync(item, id, new PartitionKey(partitionKey));
+    }
+
+    public async Task DeleteAsync(string id, TKey partitionKey)
+    {
+        await _container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey));
+    }
+}
