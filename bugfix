@@ -1,0 +1,24 @@
+public async Task<List<RecurringEvent>> GetActiveEventLogsWithScheduleAsync()
+{
+    var allEventLogs = await _eventLogRepository.GetEventsDueTodayAsync();
+    var scheduleEventIds = allEventLogs.Select(log => log.ScheduleEventId).Distinct().ToList();
+
+    var scheduleEvents = await _scheduleEventRepository.GetItemsAsync(x => scheduleEventIds.Contains(x.Id));
+    var scheduleEventDictionary = scheduleEvents.ToDictionary(se => se.Id);
+
+    List<RecurringEvent> results = new List<RecurringEvent>();
+    foreach (var log in allEventLogs)
+    {
+        if (scheduleEventDictionary.TryGetValue(log.ScheduleEventId, out var scheduleEvent))
+        {
+            var entLogs = new List<EventLog> { log };
+            results.Add(new RecurringEvent
+            {
+                EventLogs = entLogs,
+                ScheduleEvent = scheduleEvent
+            });
+        }
+    }
+
+    return results;
+}
