@@ -1,0 +1,28 @@
+public void ConfigureServices(IServiceCollection services)
+{
+    // Register the CosmosClient
+    services.AddSingleton<CosmosClient>(serviceProvider =>
+    {
+        string connectionString = Configuration["CosmosDb:ConnectionString"];
+        return new CosmosClient(connectionString);
+    });
+
+    // Register the EventLog repository with the custom DateOnly partition key converter
+    services.AddScoped<ICosmosRepository<EventLog, DateOnly>, CosmosRepository<EventLog, DateOnly>>(serviceProvider =>
+    {
+        var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
+        Func<DateOnly, PartitionKey> dateOnlyPartitionKeyConverter = date => new PartitionKey(date.ToString("yyyy-MM-dd"));
+        return new CosmosRepository<EventLog, DateOnly>(cosmosClient, "databaseName", "eventLogContainer", dateOnlyPartitionKeyConverter);
+    });
+
+    // Register other repositories as needed
+    services.AddScoped<ICosmosRepository<ScheduleEvent, string>, CosmosRepository<ScheduleEvent, string>>(serviceProvider =>
+    {
+        var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
+        Func<string, PartitionKey> scheduleEventPartitionKeyConverter = key => new PartitionKey(key);
+        return new CosmosRepository<ScheduleEvent, string>(cosmosClient, "databaseName", "scheduleEventContainer", scheduleEventPartitionKeyConverter);
+    });
+
+    // Register the service that uses these repositories
+    services.AddScoped<RecurringEventService>();
+}
