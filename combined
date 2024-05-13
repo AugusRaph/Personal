@@ -1,0 +1,31 @@
+public async Task<List<RecurringEvent>> GetActiveEventLogsWithScheduleAsync(DateTime currentDate)
+{
+    // Query EventLog where NextEventDate is today
+    var logs = _logContainer.GetItemsLinqQueryable<EventLog>()
+        .Where(el => el.NextEventDate == currentDate)
+        .ToList();
+
+    List<RecurringEvent> results = new List<RecurringEvent>();
+
+    // For each log, find matching ScheduleEvent where Status is 'active'
+    foreach (var log in logs)
+    {
+        var scheduleEvent = _container.GetItemsLinqQueryable<ScheduleEvent>()
+            .Where(se => se.Id == log.ScheduleEventId && se.PartitionKey == log.ScheduleEventPK && se.Schedule.Status == "active")
+            .FirstOrDefault();
+
+        if (scheduleEvent != null)
+        {
+            results.Add(new RecurringEvent
+            {
+                EventId = log.Id,
+                ScheduleEventId = scheduleEvent.Id,
+                NextEventDate = log.NextEventDate,
+                Status = scheduleEvent.Schedule.Status,
+                // Map other necessary fields
+            });
+        }
+    }
+
+    return results;
+}
