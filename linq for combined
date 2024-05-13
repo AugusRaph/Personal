@@ -1,0 +1,22 @@
+using Microsoft.Azure.Cosmos.Linq;
+
+// Assuming 'container' is your Cosmos container client instance
+var query = container.GetItemLinqQueryable<ScheduleEvent>()
+    .SelectMany(
+        scheduleEvent => container.GetItemLinqQueryable<EventLog>()
+            .Where(eventLog => eventLog.ScheduleEventId == scheduleEvent.Id)
+            .OrderByDescending(eventLog => eventLog.NextEventDate)
+            .Take(1),
+        (scheduleEvent, eventLog) => new {
+            ScheduleEvent = scheduleEvent,
+            EventLog = eventLog
+        });
+
+// To execute the query
+var iterator = query.ToFeedIterator();
+var results = new List<dynamic>();
+while (iterator.HasMoreResults)
+{
+    var response = await iterator.ReadNextAsync();
+    results.AddRange(response);
+}
