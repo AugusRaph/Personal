@@ -1,4 +1,4 @@
-trigger:
+btrigger:
 - main
 
 pool:
@@ -27,3 +27,14 @@ steps:
       $(Build.BuildId)
   env:
     DOCKER_BUILDKIT: 1
+
+
+- task: Docker@2
+  displayName: 'Build Docker Image using Buildx'
+  inputs:
+    command: build
+    arguments: --cache-from=type=registry,ref=myregistry/myapp:buildcache --cache-to=type=inline
+    dockerfile: 'Dockerfile'
+    buildContext: '.'
+    tags: |
+      $(Build.BuildId)
