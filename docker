@@ -1,0 +1,29 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: |
+    mkdir -p ~/.docker/cli-plugins
+    wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.7.1/buildx-v0.7.1.linux-amd64
+    chmod a+x ~/.docker/cli-plugins/docker-buildx
+    docker buildx create --use
+  displayName: 'Install and setup Docker Buildx'
+
+- script: |
+    docker version
+    docker buildx version
+  displayName: 'Check Docker and Buildx versions'
+
+- task: Docker@2
+  displayName: 'Build Docker Image using Buildx'
+  inputs:
+    command: build
+    dockerfile: 'Dockerfile'
+    buildContext: '.'
+    tags: |
+      $(Build.BuildId)
+  env:
+    DOCKER_BUILDKIT: 1
