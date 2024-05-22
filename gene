@@ -1,0 +1,43 @@
+using Microsoft.Azure.Cosmos;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+public class EventLogRepository : Repository<EventLog>, IEventLogRepository
+{
+    private readonly Container _container;
+
+    public EventLogRepository(CosmosClient cosmosClient, string databaseName, string containerName)
+        : base(cosmosClient, databaseName, containerName)
+    {
+        _container = cosmosClient.GetContainer(databaseName, containerName);
+    }
+
+    public async Task<IEnumerable<EventLog>> GetLatestEventLogsAsync(DateTime currentDate)
+    {
+        var query = new QueryDefinition(@"
+            SELECT c.ScheduleEventId, c.NextEventDate, c.OtherFields
+            FROM c
+            JOIN (
+                SELECT c.ScheduleEventId, MAX(c.NextEventDate) AS LatestEventDate
+                FROM c
+                WHERE c.NextEventDate = @currentDate
+                GROUP BY c.ScheduleEventId
+            ) AS latestEvents
+            ON c.ScheduleEventId = latestEvents.ScheduleEventId AND c.NextEventDate = latestEvents.LatestEventDate
+            WHERE c.NextEventDate = @currentDate
+        ").WithParameter("@currentDate", currentDate);
+
+        var iterator = _container.GetItemQueryIterator<EventLog>(query);
+        var results = new List<EventLog>();
+
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            results.AddRange(response.ToList());
+        }
+
+        return results;
+    }
+}
