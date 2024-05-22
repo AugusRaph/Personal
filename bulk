@@ -1,0 +1,71 @@
+using Microsoft.Azure.Cosmos;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+public class CosmosDbRepository<T> : ICosmosDbRepository<T>
+{
+    private readonly Container _container;
+
+    public CosmosDbRepository(CosmosClient cosmosClient, string databaseName, string containerName)
+    {
+        _container = cosmosClient.GetContainer(databaseName, containerName);
+    }
+
+    public async Task BulkInsertAsync(IEnumerable<T> items)
+    {
+        var tasks = new List<Task>();
+        var groupedByPartitionKey = items.GroupBy(item => GetPartitionKey(item));
+
+        foreach (var group in groupedByPartitionKey)
+        {
+            TransactionalBatch batch = _container.CreateTransactionalBatch(new PartitionKey(group.Key));
+
+            foreach (var item in group)
+            {
+                batch.CreateItem(item);
+            }
+
+            tasks.Add(ExecuteBatchAsync(batch));
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task ExecuteBatchAsync(TransactionalBatch batch)
+    {
+        try
+        {
+            TransactionalBatchResponse response = await batch.ExecuteAsync();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                // Log the failed status code and message
+                Console.WriteLine($"Batch failed with status code: {response.StatusCode}. Message: {response.ErrorMessage}");
+            }
+            else
+            {
+                Console.WriteLine("Batch executed successfully.");
+            }
+        }
+        catch (CosmosException ex)
+        {
+            // Log Cosmos DB specific exception details
+            Console.WriteLine($"Cosmos DB error occurred: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            // Log general exception details
+            Console.WriteLine($"General error occurred: {ex.Message}");
+        }
+    }
+
+    private string GetPartitionKey(T item)
+    {
+        // Assuming the partition key is a property named "PartitionKey" in the item
+        // Adjust this method based on your actual partition key property
+        var property = typeof(T).GetProperty("PartitionKey");
+        return property?.GetValue(item)?.ToString();
+    }
+}
