@@ -1,0 +1,171 @@
+@page "/cardholderprofile"
+@using YourNamespace.Models
+@inject HttpClient Http
+
+<PageTitle>Cardholder Profile</PageTitle>
+
+<h3>Cardholder Profile</h3>
+
+@if (profile == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h4>Cardholder Details</h4>
+    <EditForm Model="profile.CardholderDetail" OnValidSubmit="HandleCardholderDetailSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label>First Name: </label>
+            <InputText @bind-Value="profile.CardholderDetail.FirstName" />
+        </div>
+        <div>
+            <label>Last Name: </label>
+            <InputText @bind-Value="profile.CardholderDetail.LastName" />
+        </div>
+        <!-- Add other fields as necessary -->
+
+        <button type="submit">Save Cardholder Details</button>
+    </EditForm>
+
+    <h4>Addresses</h4>
+    @foreach (var address in profile.Addresses)
+    {
+        <EditForm Model="address" OnValidSubmit="HandleAddressSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div>
+                <label>Street: </label>
+                <InputText @bind-Value="address.Street" />
+                <!-- Add other fields as necessary -->
+            </div>
+
+            <button type="submit">Save Address</button>
+        </EditForm>
+    }
+
+    <h4>Contacts</h4>
+    @foreach (var contact in profile.Contacts)
+    {
+        <EditForm Model="contact" OnValidSubmit="HandleContactSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div>
+                <label>Email: </label>
+                <InputText @bind-Value="contact.Email" />
+                <!-- Add other fields as necessary -->
+            </div>
+
+            <button type="submit">Save Contact</button>
+        </EditForm>
+    }
+
+    <h4>Prepaid Cards</h4>
+    @foreach (var card in profile.CardDetails)
+    {
+        <EditForm Model="card" OnValidSubmit="HandleCardDetailsSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div>
+                <label>Card Number: </label>
+                <InputText @bind-Value="card.CardNumber" />
+                <!-- Add other fields as necessary -->
+            </div>
+
+            <button type="submit">Save Card Details</button>
+        </EditForm>
+    }
+
+    <h4>Security Check</h4>
+    <EditForm Model="profile.SecurityCheck" OnValidSubmit="HandleSecurityCheckSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label>Security Question: </label>
+            <InputText @bind-Value="profile.SecurityCheck.SecurityQuestion" />
+            <!-- Add other fields as necessary -->
+        </div>
+
+        <button type="submit">Save Security Check</button>
+    </EditForm>
+}
+
+@code {
+    private CardholderProfileResponse profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        profile = await Http.GetFromJsonAsync<CardholderProfileResponse>("api/cardholderprofile/1");
+    }
+
+    private async Task HandleCardholderDetailSubmit()
+    {
+        var response = await Http.PutAsJsonAsync($"api/cardholderprofile/cardholderdetail/{profile.CardholderDetail.Id}", profile.CardholderDetail);
+        if (response.IsSuccessStatusCode)
+        {
+            // Handle success, show a success message or navigate away
+        }
+        else
+        {
+            // Handle error
+        }
+    }
+
+    private async Task HandleAddressSubmit()
+    {
+        foreach (var address in profile.Addresses)
+        {
+            var response = await Http.PutAsJsonAsync($"api/cardholderprofile/address/{address.Id}", address);
+            if (!response.IsSuccessStatusCode)
+            {
+                // Handle error
+                break;
+            }
+        }
+    }
+
+    private async Task HandleContactSubmit()
+    {
+        foreach (var contact in profile.Contacts)
+        {
+            var response = await Http.PutAsJsonAsync($"api/cardholderprofile/contact/{contact.Id}", contact);
+            if (!response.IsSuccessStatusCode)
+            {
+                // Handle error
+                break;
+            }
+        }
+    }
+
+    private async Task HandleCardDetailsSubmit()
+    {
+        foreach (var card in profile.CardDetails)
+        {
+            var response = await Http.PutAsJsonAsync($"api/cardholderprofile/carddetails/{card.Id}", card);
+            if (!response.IsSuccessStatusCode)
+            {
+                // Handle error
+                break;
+            }
+        }
+    }
+
+    private async Task HandleSecurityCheckSubmit()
+    {
+        var response = await Http.PutAsJsonAsync($"api/cardholderprofile/securitycheck/{profile.SecurityCheck.Id}", profile.SecurityCheck);
+        if (response.IsSuccessStatusCode)
+        {
+            // Handle success, show a success message or navigate away
+        }
+        else
+        {
+            // Handle error
+        }
+    }
+}
