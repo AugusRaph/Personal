@@ -1,0 +1,71 @@
+public List<CardholderProfileResponse> GetCardholderProfiles()
+{
+    var cardholderProfiles = new List<CardholderProfileResponse>();
+    var cardholderMap = new Dictionary<Guid, CardholderProfileResponse>();
+
+    using (var connection = new SqlConnection(connectionString))
+    {
+        var command = connection.CreateCommand();
+        command.CommandType = CommandType.Text;
+        command.CommandText = @"
+            SELECT
+                chd.CardholderDetailsId,
+                chd.FirstName,
+                chd.LastName,
+                cd.ContactType,
+                cd.Value AS ContactValue,
+                pa.AccountType,
+                pa.AccountNumber
+            FROM
+                CardholderDetails chd
+            LEFT JOIN
+                ContactDetail cd ON cd.CardholderDetailsId = chd.CardholderDetailsId
+            LEFT JOIN
+                PrepaidAccount pa ON pa.CardholderDetailsId = chd.CardholderDetailsId
+            ORDER BY
+                chd.CardholderDetailsId;";
+
+        connection.Open();
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                var cardholderDetailsId = reader.GetGuid(0);
+
+                if (!cardholderMap.TryGetValue(cardholderDetailsId, out var cardholderProfile))
+                {
+                    cardholderProfile = new CardholderProfileResponse
+                    {
+                        CardholderDetailsId = cardholderDetailsId,
+                        FirstName = reader.GetString(1),
+                        LastName = reader.GetString(2),
+                        ContactDetails = new List<ContactDetail>(),
+                        AccountDetails = new List<AccountDetail>()
+                    };
+                    cardholderProfiles.Add(cardholderProfile);
+                    cardholderMap[cardholderDetailsId] = cardholderProfile;
+                }
+
+                if (!reader.IsDBNull(3) && !reader.IsDBNull(4))
+                {
+                    cardholderProfile.ContactDetails.Add(new ContactDetail
+                    {
+                        ContactType = reader.GetString(3),
+                        Value = reader.GetString(4)
+                    });
+                }
+
+                if (!reader.IsDBNull(5) && !reader.IsDBNull(6))
+                {
+                    cardholderProfile.AccountDetails.Add(new AccountDetail
+                    {
+                        AccountType = reader.GetString(5),
+                        AccountNumber = reader.GetString(6)
+                    });
+                }
+            }
+        }
+    }
+
+    return cardholderProfiles;
+}
