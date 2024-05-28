@@ -1,0 +1,26 @@
+SELECT
+    chd.CardholderDetailsId,
+    chd.FirstName,
+    chd.LastName,
+    STUFF(
+        (
+            SELECT ', ' + cd.ContactType + ': ' + cd.Value
+            FROM ContactDetail cd
+            WHERE cd.CardholderDetailsId = chd.CardholderDetailsId
+            FOR XML PATH(''), TYPE
+        ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
+    ) AS ContactDetails,
+    STUFF(
+        (
+            SELECT ', ' + pa.AccountType + ': ' + pa.AccountNumber
+            FROM PrepaidAccount pa
+            WHERE pa.CardholderDetailsId = chd.CardholderDetailsId
+            FOR XML PATH(''), TYPE
+        ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
+    ) AS AccountDetails
+FROM
+    CardholderDetails chd
+GROUP BY
+    chd.CardholderDetailsId,
+    chd.FirstName,
+    chd.LastName;
