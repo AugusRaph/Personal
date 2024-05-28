@@ -1,0 +1,40 @@
+using (var connection = new SqlConnection(connectionString))
+{
+    var query = @"
+    SELECT 
+        C.CustomerID,
+        C.CustomerName,
+        C.ContactName,
+        C.Country,
+        O.OrderID,
+        O.OrderDate,
+        O.TotalAmount
+    FROM 
+        Customers AS C
+    LEFT JOIN 
+        Orders AS O ON C.CustomerID = O.CustomerID
+    ORDER BY 
+        C.CustomerID, O.OrderDate;";
+
+    var customerDictionary = new Dictionary<int, Customer>();
+
+    var result = connection.Query<Customer, Order, Customer>(query, (customer, order) =>
+    {
+        if (!customerDictionary.TryGetValue(customer.CustomerID, out var currentCustomer))
+        {
+            currentCustomer = customer;
+            currentCustomer.Orders = new List<Order>();
+            customerDictionary.Add(currentCustomer.CustomerID, currentCustomer);
+        }
+
+        if (order != null)
+        {
+            currentCustomer.Orders.Add(order);
+        }
+
+        return currentCustomer;
+    }, splitOn: "OrderID");
+
+    var customers = customerDictionary.Values.ToList();
+    // Now `customers` is a list where each customer has a list of their orders.
+}
