@@ -1,0 +1,235 @@
+@page "/cardholder-profile"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using Microsoft.AspNetCore.Components.Forms
+
+@code {
+    private CardholderProfile profile = new CardholderProfile();
+
+    // Editable values
+    private string editableFullName;
+    private string editableGender;
+    private List<Address> editableAddresses;
+    private List<ContactDetail> editableContacts;
+    private List<CardDetail> editableCards;
+
+    // Edit states
+    private bool isEditingDetails = false;
+    private bool isEditingAddresses = false;
+    private bool isEditingContacts = false;
+    private bool isEditingCards = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load profile data from API
+        profile = await LoadProfile();
+    }
+
+    private async Task<CardholderProfile> LoadProfile()
+    {
+        // Simulate API call
+        await Task.Delay(500);
+        return new CardholderProfile
+        {
+            FullName = "John Doe",
+            Gender = "Male",
+            Addresses = new List<Address>
+            {
+                new Address { Street = "123 Main St", City = "Springfield", State = "IL", PostalCode = "62701" }
+            },
+            ContactDetails = new List<ContactDetail>
+            {
+                new ContactDetail { Type = "Email", Value = "john.doe@example.com" }
+            },
+            CardDetails = new List<CardDetail>
+            {
+                new CardDetail { CardNumber = "1234 5678 9012 3456", ExpiryDate = "12/24" }
+            }
+        };
+    }
+
+    private void EditDetails()
+    {
+        editableFullName = profile.FullName;
+        editableGender = profile.Gender;
+        isEditingDetails = true;
+    }
+
+    private void SaveDetails()
+    {
+        profile.FullName = editableFullName;
+        profile.Gender = editableGender;
+        isEditingDetails = false;
+    }
+
+    private void EditAddresses()
+    {
+        editableAddresses = new List<Address>(profile.Addresses);
+        isEditingAddresses = true;
+    }
+
+    private void SaveAddresses()
+    {
+        profile.Addresses = new List<Address>(editableAddresses);
+        isEditingAddresses = false;
+    }
+
+    private void EditContacts()
+    {
+        editableContacts = new List<ContactDetail>(profile.ContactDetails);
+        isEditingContacts = true;
+    }
+
+    private void SaveContacts()
+    {
+        profile.ContactDetails = new List<ContactDetail>(editableContacts);
+        isEditingContacts = false;
+    }
+
+    private void EditCards()
+    {
+        editableCards = new List<CardDetail>(profile.CardDetails);
+        isEditingCards = true;
+    }
+
+    private void SaveCards()
+    {
+        profile.CardDetails = new List<CardDetail>(editableCards);
+        isEditingCards = false;
+    }
+}
+
+<h3>Cardholder Profile</h3>
+
+<section>
+    <h4>Details</h4>
+    @if (isEditingDetails)
+    {
+        <EditForm OnValidSubmit="SaveDetails">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="form-group">
+                <label for="fullName">Full Name:</label>
+                <InputText id="fullName" class="form-control" @bind-Value="editableFullName" />
+            </div>
+            <div class="form-group">
+                <label for="gender">Gender:</label>
+                <InputSelect id="gender" class="form-control" @bind-Value="editableGender">
+                    @foreach (var gender in profile.Genders)
+                    {
+                        <option value="@gender">@gender</option>
+                    }
+                </InputSelect>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </EditForm>
+    }
+    else
+    {
+        <p>Full Name: @profile.FullName</p>
+        <p>Gender: @profile.Gender</p>
+        <button @onclick="EditDetails" class="btn btn-secondary">Edit</button>
+    }
+</section>
+
+<section>
+    <h4>Addresses</h4>
+    @if (isEditingAddresses)
+    {
+        <EditForm OnValidSubmit="SaveAddresses">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            @foreach (var address in editableAddresses)
+            {
+                <div class="form-group">
+                    <label for="street">Street:</label>
+                    <InputText id="street" class="form-control" @bind-Value="address.Street" />
+                </div>
+                <div class="form-group">
+                    <label for="city">City:</label>
+                    <InputText id="city" class="form-control" @bind-Value="address.City" />
+                </div>
+                <div class="form-group">
+                    <label for="state">State:</label>
+                    <InputText id="state" class="form-control" @bind-Value="address.State" />
+                </div>
+                <div class="form-group">
+                    <label for="postalCode">Postal Code:</label>
+                    <InputText id="postalCode" class="form-control" @bind-Value="address.PostalCode" />
+                </div>
+            }
+            <button type="submit" class="btn btn-primary">Save</button>
+        </EditForm>
+    }
+    else
+    {
+        @foreach (var address in profile.Addresses)
+        {
+            <p>@address.Street, @address.City, @address.State, @address.PostalCode</p>
+        }
+        <button @onclick="EditAddresses" class="btn btn-secondary">Edit</button>
+    }
+</section>
+
+<section>
+    <h4>Contact Details</h4>
+    @if (isEditingContacts)
+    {
+        <EditForm OnValidSubmit="SaveContacts">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            @foreach (var contact in editableContacts)
+            {
+                <div class="form-group">
+                    <label for="contactType">Type:</label>
+                    <InputText id="contactType" class="form-control" @bind-Value="contact.Type" />
+                </div>
+                <div class="form-group">
+                    <label for="contactValue">Value:</label>
+                    <InputText id="contactValue" class="form-control" @bind-Value="contact.Value" />
+                </div>
+            }
+            <button type="submit" class="btn btn-primary">Save</button>
+        </EditForm>
+    }
+    else
+    {
+        @foreach (var contact in profile.ContactDetails)
+        {
+            <p>@contact.Type: @contact.Value</p>
+        }
+        <button @onclick="EditContacts" class="btn btn-secondary">Edit</button>
+    }
+</section>
+
+<section>
+    <h4>Card Details</h4>
+    @if (isEditingCards)
+    {
+        <EditForm OnValidSubmit="SaveCards">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            @foreach (var card in editableCards)
+            {
+                <div class="form-group">
+                    <label for="cardNumber">Card Number:</label>
+                    <InputText id="cardNumber" class="form-control" @bind-Value="card.CardNumber" />
+                </div>
+                <div class="form-group">
+                    <label for="expiryDate">Expiry Date:</label>
+                    <InputText id="expiryDate" class="form-control" @bind-Value="card.ExpiryDate" />
+                </div>
+            }
+            <button type="submit" class="btn btn-primary">Save</button>
+        </EditForm>
+    }
+    else
+    {
+        @foreach (var card in profile.CardDetails)
+        {
+            <p>Card Number: @card.CardNumber</p>
+            <p>Expiry Date: @card.ExpiryDate</p>
+        }
+        <button @onclick="EditCards" class="btn btn-secondary">Edit</button>
+    }
+</section>
