@@ -1,0 +1,179 @@
+public class CardholderProfile
+{
+    public string FullName { get; set; }
+    public string Gender { get; set; }
+    public List<string> Genders { get; set; } = new List<string> { "Male", "Female", "Other" };
+    public List<Address> Addresses { get; set; } = new List<Address>();
+    public List<ContactDetail> ContactDetails { get; set; } = new List<ContactDetail>();
+    public List<CardDetail> CardDetails { get; set; } = new List<CardDetail>();
+}
+
+public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string PostalCode { get; set; }
+}
+
+public class ContactDetail
+{
+    public string Type { get; set; }
+    public string Value { get; set; }
+}
+
+public class CardDetail
+{
+    public string CardNumber { get; set; }
+    public string ExpiryDate { get; set; }
+}
+
+
+@page "/cardholder-profile"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+
+@code {
+    private CardholderProfile profile = new CardholderProfile();
+    private bool isEditingDetails = false;
+    private bool isEditingAddresses = false;
+    private bool isEditingContacts = false;
+    private bool isEditingCards = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load profile data from API
+        profile = await LoadProfile();
+    }
+
+    private async Task<CardholderProfile> LoadProfile()
+    {
+        // Simulate API call
+        await Task.Delay(500);
+        return new CardholderProfile
+        {
+            FullName = "John Doe",
+            Gender = "Male",
+            Addresses = new List<Address>
+            {
+                new Address { Street = "123 Main St", City = "Springfield", State = "IL", PostalCode = "62701" }
+            },
+            ContactDetails = new List<ContactDetail>
+            {
+                new ContactDetail { Type = "Email", Value = "john.doe@example.com" }
+            },
+            CardDetails = new List<CardDetail>
+            {
+                new CardDetail { CardNumber = "1234 5678 9012 3456", ExpiryDate = "12/24" }
+            }
+        };
+    }
+
+    private async Task SaveProfile()
+    {
+        // Simulate API call to save profile
+        await Task.Delay(500);
+        isEditingDetails = false;
+        isEditingAddresses = false;
+        isEditingContacts = false;
+        isEditingCards = false;
+    }
+}
+
+<h3>Cardholder Profile</h3>
+
+<section>
+    <h4>Details</h4>
+    @if (isEditingDetails)
+    {
+        <input @bind="profile.FullName" placeholder="Full Name" />
+        <select @bind="profile.Gender">
+            @foreach (var gender in profile.Genders)
+            {
+                <option value="@gender">@gender</option>
+            }
+        </select>
+        <button @onclick="SaveProfile">Save</button>
+    }
+    else
+    {
+        <p>Full Name: @profile.FullName</p>
+        <p>Gender: @profile.Gender</p>
+        <button @onclick="() => isEditingDetails = true">Edit</button>
+    }
+</section>
+
+<section>
+    <h4>Addresses</h4>
+    @if (isEditingAddresses)
+    {
+        @foreach (var address in profile.Addresses)
+        {
+            <div>
+                <input @bind="address.Street" placeholder="Street" />
+                <input @bind="address.City" placeholder="City" />
+                <input @bind="address.State" placeholder="State" />
+                <input @bind="address.PostalCode" placeholder="Postal Code" />
+            </div>
+        }
+        <button @onclick="SaveProfile">Save</button>
+    }
+    else
+    {
+        @foreach (var address in profile.Addresses)
+        {
+            <p>@address.Street, @address.City, @address.State, @address.PostalCode</p>
+        }
+        <button @onclick="() => isEditingAddresses = true">Edit</button>
+    }
+</section>
+
+<section>
+    <h4>Contact Details</h4>
+    @if (isEditingContacts)
+    {
+        @foreach (var contact in profile.ContactDetails)
+        {
+            <div>
+                <input @bind="contact.Type" placeholder="Type" />
+                <input @bind="contact.Value" placeholder="Value" />
+            </div>
+        }
+        <button @onclick="SaveProfile">Save</button>
+    }
+    else
+    {
+        @foreach (var contact in profile.ContactDetails)
+        {
+            <p>@contact.Type: @contact.Value</p>
+        }
+        <button @onclick="() => isEditingContacts = true">Edit</button>
+    }
+</section>
+
+<section>
+    <h4>Card Details</h4>
+    @if (isEditingCards)
+    {
+        @foreach (var card in profile.CardDetails)
+        {
+            <div>
+                <input @bind="card.CardNumber" placeholder="Card Number" />
+                <input @bind="card.ExpiryDate" placeholder="Expiry Date" />
+            </div>
+        }
+        <button @onclick="SaveProfile">Save</button>
+    }
+    else
+    {
+        @foreach (var card in profile.CardDetails)
+        {
+            <p>Card Number: @card.CardNumber</p>
+            <p>Expiry Date: @card.ExpiryDate</p>
+        }
+        <button @onclick="() => isEditingCards = true">Edit</button>
+    }
+</section>
+
+
+
